@@ -3,6 +3,8 @@ name: Java CI - Matrix Strategy (Bai4)
 on:
   push:
     branches: [ "**" ]
+    paths:
+      - "Bai04/**"
   pull_request:
     branches: [ main ]
 

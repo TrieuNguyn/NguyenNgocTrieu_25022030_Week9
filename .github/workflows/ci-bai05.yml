@@ -3,6 +3,8 @@ name: Java CI + JaCoCo Coverage (Bai5)
 on:
   push:
     branches: [ "**" ]
+    paths:
+      - "Bai05/**"
   pull_request:
     branches: [ main ]
 
