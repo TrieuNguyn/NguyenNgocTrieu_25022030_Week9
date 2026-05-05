@@ -8,6 +8,7 @@ on:
       - ".github/workflows/ci-bai03.yml"
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
