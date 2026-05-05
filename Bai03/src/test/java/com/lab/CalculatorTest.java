@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CalculatorTest {
-
+dcm
     Calculator calc = new Calculator();
     @Test void testAdd() { assertEquals(5, calc.add(2, 3)); }
     @Test void testMultiply() { assertEquals(20, calc.multiply(4, 5)); }
