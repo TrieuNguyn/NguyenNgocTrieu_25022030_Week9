@@ -46,7 +46,7 @@
                 <version>3.1.2</version>
             </plugin>
 
-            <\!--
+            <!--
                 JaCoCo Plugin - đo code coverage
                 Fail build nếu coverage < 80%
             -->
@@ -55,18 +55,18 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.10</version>
                 <executions>
-                    <\!-- Chuẩn bị agent trước khi test -->
+                    <!-- Chuẩn bị agent trước khi test -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals><goal>prepare-agent</goal></goals>
                     </execution>
-                    <\!-- Tạo báo cáo HTML sau khi test -->
+                    <!-- Tạo báo cáo HTML sau khi test -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal></goals>
                     </execution>
-                    <\!-- Kiểm tra ngưỡng coverage - fail nếu < 80% -->
+                    <!-- Kiểm tra ngưỡng coverage - fail nếu < 80% -->
                     <execution>
                         <id>check</id>
                         <phase>verify</phase>
