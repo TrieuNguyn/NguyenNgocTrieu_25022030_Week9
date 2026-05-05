@@ -1,0 +1,257 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.practice.maven</groupId>
+  <artifactId>maven-lab-01</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <properties>
+    <!--
+        [FIX #1] Nâng Java 1.8 → 11
+        NGUYÊN NHÂN: Hibernate 6.x dùng java.util.Optional, sealed classes,
+        và các API của Java 11 trong bytecode nội bộ.
+        Giữ nguyên Java 8 → runtime crash: UnsupportedClassVersionError.
+    -->
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Tập trung version để dễ quản lý và nâng cấp sau này -->
+    <logback.version>1.4.11</logback.version>
+    <slf4j.version>2.0.9</slf4j.version>
+    <hibernate.version>6.2.0.Final</hibernate.version>
+    <junit.version>5.9.2</junit.version>
+
+    <!--
+        [FIX #4] Nâng Guava 18.0 (2014) → 32.1.3-jre
+        NGUYÊN NHÂN: Guava 18.0 truy cập sun.misc.* và các internal package
+        bị cấm bởi Java 11 Module System → IllegalAccessError tại runtime.
+        Dạng "-jre" là bản cho Java 8+, "-android" là cho Android.
+    -->
+    <guava.version>32.1.3-jre</guava.version>
+
+    <!--
+        [FIX #5] Nâng commons-lang3 3.1 (2012) → 3.13.0
+        NGUYÊN NHÂN: Nếu Hibernate hoặc các transitive dependency kéo vào
+        commons-lang3 mới hơn, Maven "nearest-wins" sẽ giữ 3.1. Các version
+        cũ thiếu nhiều utility method mà code Hibernate nội bộ có thể dùng.
+    -->
+    <commons-lang3.version>3.13.0</commons-lang3.version>
+
+    <!--
+        [FIX #6] Nâng jackson-databind 2.5.0 (2015) → 2.15.2
+        NGUYÊN NHÂN:
+        - jackson-databind 2.5.0 chứa nhiều CVE nghiêm trọng
+          (CVE-2017-7525, CVE-2019-14379, v.v.).
+        - Nếu Hibernate kéo vào jackson 2.14+, Maven giữ 2.5.0 (nearest-wins).
+          Hibernate sẽ fail khi dùng các API của Jackson 2.x mới.
+    -->
+    <jackson.version>2.15.2</jackson.version>
+  </properties>
+
+  <dependencies>
+
+    <!-- ================================================================ -->
+    <!-- NHÓM 1: LOGGING                                                  -->
+    <!-- ================================================================ -->
+
+    <!--
+        [YÊU CẦU] Thêm Logback Classic 1.4.11
+        Logback-classic tự kéo theo logback-core cùng version.
+        QUAN TRỌNG: Logback 1.4.x CHỈ tương thích với SLF4J 2.0.x.
+        Dùng với SLF4J 1.x → ClassNotFoundException / NoSuchMethodError tại runtime.
+    -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
+    </dependency>
+
+    <!--
+        [FIX #2] Pin tường minh SLF4J 2.0.9
+        NGUYÊN NHÂN: Maven dùng quy tắc "nearest-wins". Nếu bất kỳ
+        transitive dependency nào kéo vào slf4j-api 1.x (Guava cũ,
+        jboss-logging, v.v.), Maven có thể chọn 1.x thay vì 2.x.
+        Khai báo tường minh tại root → đây là "nearest" → luôn thắng.
+        Không có dòng này: Logback log vào /dev/null, không có warning rõ ràng.
+    -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <!-- ================================================================ -->
+    <!-- NHÓM 2: HIBERNATE                                                -->
+    <!-- ================================================================ -->
+
+    <!--
+        [YÊU CẦU] Thêm Hibernate Core 6.2.0.Final
+        Tự kéo theo: jakarta.persistence-api:3.1.0, jboss-logging,
+        byte-buddy, antlr4-runtime, hibernate-commons-annotations, v.v.
+
+        LƯU Ý: Hibernate 6.x đã chuyển sang namespace jakarta.*
+        Nếu code cũ dùng javax.persistence.* → phải refactor import.
+    -->
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-core</artifactId>
+      <version>${hibernate.version}</version>
+      <!--
+          [FIX #3] Loại trừ jboss-logging khỏi Hibernate
+          NGUYÊN NHÂN: jboss-logging mà Hibernate kéo vào (3.5.0.Final)
+          có thể conflict với version ta cần. Ta khai báo lại riêng
+          với version 3.5.3.Final đã được xác nhận tương thích SLF4J 2.x.
+      -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.jboss.logging</groupId>
+          <artifactId>jboss-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!--
+        [FIX #3 - tiếp] Khai báo lại jboss-logging với version tương thích
+        jboss-logging 3.5.3.Final hỗ trợ định tuyến log qua SLF4J 2.x,
+        đảm bảo log nội bộ của Hibernate đi vào Logback đúng cách.
+    -->
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <version>3.5.3.Final</version>
+    </dependency>
+
+    <!-- ================================================================ -->
+    <!-- NHÓM 3: TESTING                                                  -->
+    <!-- ================================================================ -->
+
+    <!--
+        [YÊU CẦU + FIX #7] Xóa junit:junit:4.10, thay bằng JUnit Jupiter 5.9.2
+
+        junit-jupiter là "aggregator artifact" gồm:
+          - junit-jupiter-api     : @Test, @BeforeEach, Assertions.*
+          - junit-jupiter-engine  : Runtime engine chạy test
+          - junit-jupiter-params  : @ParameterizedTest
+
+        Nếu chỉ thêm junit-jupiter-api mà thiếu engine →
+        Surefire không chạy được test, báo "Tests run: 0" (silent failure).
+
+        ĐỂ Ý: @Test của JUnit 5 nằm ở org.junit.jupiter.api.Test,
+        KHÔNG phải org.junit.Test (JUnit 4). Mọi file test cũ phải
+        cập nhật import nếu muốn chạy dưới JUnit 5.
+    -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- ================================================================ -->
+    <!-- NHÓM 4: CÁC DEPENDENCY CŨ - NÂNG CẤP TƯƠNG THÍCH              -->
+    <!-- ================================================================ -->
+
+    <!--
+        [FIX #4] Guava 18.0 → 32.1.3-jre
+        Xem lý do tại <properties> bên trên.
+    -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+    </dependency>
+
+    <!--
+        [FIX #5] commons-lang3 3.1 → 3.13.0
+        Backward compatible. Không cần sửa code.
+    -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
+    </dependency>
+
+    <!--
+        [FIX #6] jackson-databind 2.5.0 → 2.15.2
+        Xem lý do tại <properties> bên trên.
+        jackson-databind tự kéo jackson-core và jackson-annotations
+        cùng version → không cần khai báo riêng.
+    -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+
+    <!--
+        [FIX #8] mysql-connector-java 5.1.30 → mysql-connector-j 8.0.33
+        HAI THAY ĐỔI QUAN TRỌNG:
+
+        (a) Đổi groupId + artifactId:
+            CŨ: mysql:mysql-connector-java (deprecated từ 2022)
+            MỚI: com.mysql:mysql-connector-j
+
+        (b) Thêm scope runtime:
+            JDBC driver KHÔNG cần có mặt lúc compile (không import trực tiếp
+            trong code — chỉ dùng qua java.sql.*). Để compile scope là lãng phí
+            và sẽ bị đóng gói vào JAR không cần thiết.
+
+        (c) Nâng version: 5.1.30 không hỗ trợ MySQL 8, có CVE bảo mật,
+            không tương thích với Hibernate 6 Dialect mới.
+    -->
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <version>8.0.33</version>
+      <scope>runtime</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <!--
+          Nâng maven-compiler-plugin 3.1 → 3.11.0
+          Version 3.1 (2013) không nhận đúng Java 11 release flag.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <source>11</source>
+          <target>11</target>
+        </configuration>
+      </plugin>
+
+      <!--
+          [FIX #7 - BẮT BUỘC] Thêm maven-surefire-plugin 3.1.2
+
+          Đây là fix QUAN TRỌNG NHẤT và DỄ BỎ SÓT NHẤT.
+
+          maven-surefire-plugin mặc định của Maven (2.12.4) KHÔNG biết
+          JUnit 5 tồn tại. Kết quả:
+            - Build SUCCESS
+            - Tests run: 0, Failures: 0, Errors: 0
+            - KHÔNG CÓ TEST NÀO THỰC SỰ CHẠY
+
+          Developer tưởng test pass → thực ra bị bỏ qua hoàn toàn.
+          Đây là dạng "silent failure" nguy hiểm nhất trong Maven.
+
+          Yêu cầu: Surefire >= 2.22.0 để nhận JUnit 5.
+                   Surefire 3.x là phiên bản khuyến nghị hiện tại.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.1.2</version>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>
