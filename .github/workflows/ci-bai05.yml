@@ -5,6 +5,7 @@ on:
     branches: [ "**" ]
     paths:
       - "Bai05/**"
+      - ".github/workflows/ci-bai05.yml"
   pull_request:
     branches: [ main ]
 
