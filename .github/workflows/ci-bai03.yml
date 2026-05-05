@@ -24,6 +24,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build and test with Maven
+        working-directory: Bai03
         run: mvn clean test package --batch-mode
 
       - name: Upload JAR artifact

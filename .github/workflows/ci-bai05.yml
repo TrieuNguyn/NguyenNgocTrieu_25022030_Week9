@@ -23,6 +23,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build, test and verify coverage
+        working-directory: Bai05
         # mvn verify chạy: compile → test → jacoco:check (fail nếu < 80%)
         run: mvn clean verify --batch-mode
 
